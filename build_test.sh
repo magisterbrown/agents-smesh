@@ -1,12 +1,13 @@
+rm /tmp/rankings.db
 make 
-./server &> /tmp/gotest.log &
-sid=$!
 
 # TESTS:
 
-curl  "http://localhost:8090/leaderboard"
-curl -X POST "http://localhost:8090/leaderboard"
+unshare --fork --pid --mount-proc --user /bin/bash <<EOF
+./server &> /tmp/gotest.log &
+curl  "http://localhost:8090/leaderboard"; echo
+curl -X POST "http://localhost:8090/leaderboard"; echo
+EOF
 
-echo "SERVER logs:"
+printf "\nSERVER logs:\n"
 cat /tmp/gotest.log
-kill -9 $sid

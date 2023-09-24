@@ -2,8 +2,11 @@ package main
 
 import (
     "fmt"
+    "log"
     "net/http"
     "database/sql"
+    "ranking/models"
+
     _ "github.com/mattn/go-sqlite3" 
 )
 
@@ -26,34 +29,13 @@ func postSolution(w http.ResponseWriter, req *http.Request) {
     }
 }
 
-var db *sql.DB
-
-type Roww struct {
-        ID     int64
-}
-
 func main() {
-    db, err := sql.Open("sqlite3", "/tmp/infos.sql") 
+    var err error
+    models.DB, err = sql.Open("sqlite3", "/tmp/rankings.db") 
     if err != nil {
-        fmt.Print("Hello, ")
+        log.Fatal(err)
     }
-    defer db.Close()
 
-    // Query for all table names in the database
-    rows, err := db.Query("SELECT * FROM basic;")
-
-    // Iterate through the results and print table names
-    for rows.Next() {
-        var rrw Roww
-        rows.Scan(&rrw.ID);
-        fmt.Println("Table Name:", rrw)
-    }
-    defer rows.Close()
-    fmt.Println("DONE:")
-
-
-//	_, err = db.Exec(sqlStmt)
-    //http.HandleFunc("/solution", postSolution)
     http.HandleFunc("/leaderboard", getLeaderboard)
     http.ListenAndServe(":8090", nil)
 }
