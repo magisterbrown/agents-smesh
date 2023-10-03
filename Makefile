@@ -4,7 +4,7 @@ DB_PATH := /tmp/rankings.db
 build: compile init_db
 
 compile:
-	go build -o ./$(BINARY) ./main.go
+	go build  -o ./$(BINARY) ./main.go
 
 init_db:
 ifeq (,$(wildcard $(DB_PATH)))	

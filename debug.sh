@@ -1,0 +1,2 @@
+make
+dlv debug ./server
