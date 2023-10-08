@@ -1,2 +1,3 @@
 FROM ubuntu 
-RUN apt get install gdb
+RUN touch ff.txt
+
