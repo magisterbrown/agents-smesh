@@ -1,6 +1,7 @@
 package main
 
 import (
+    "github.com/dustinkirkland/golang-petname"
     "fmt"
     "log"
     "net/http"
@@ -12,8 +13,6 @@ import (
     "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
     "context"
-
-
 )
 
 func getLeaderboard(w http.ResponseWriter, req *http.Request) {
@@ -39,7 +38,7 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             // Create docker image
 	        cli, err := client.NewClientWithOpts(client.FromEnv)
             options := types.ImageBuildOptions{
-                Tags: []string{"reformed"},
+                Tags: []string{petname.Generate(2, "-")},
                 SuppressOutput: true,                           
                 Dockerfile: "submission/Dockerfile",           
             }                                                 
