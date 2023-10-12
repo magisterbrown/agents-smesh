@@ -7,8 +7,12 @@ import (
     "database/sql"
     "encoding/json"
     "ranking/models"
-    "archive/zip"
+    _ "archive/zip"
     _ "github.com/mattn/go-sqlite3" 
+    "github.com/docker/docker/api/types"
+	"github.com/docker/docker/client"
+    "context"
+
 
 )
 
@@ -24,26 +28,37 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             json.NewEncoder(w).Encode(res)
         case "POST":
             req.ParseMultipartForm(11 << 20) 
-            file, header, err:= req.FormFile("submission")
+            file, _, err:= req.FormFile("submission")
             if err != nil {
                 fmt.Printf(err.Error())
             	http.Error(w, "Error retrieving file from form", http.StatusBadRequest)
             	return
             }
             defer file.Close()
+            
+            // Create docker image
+	        cli, err := client.NewClientWithOpts(client.FromEnv)
+            options := types.ImageBuildOptions{
+                Tags: []string{"reformed"},
+                SuppressOutput: true,                           
+                Dockerfile: "submission/Dockerfile",           
+            }                                                 
+            var _ = options
+            resp, err := cli.ImageBuild(context.Background(), file, options)
+            if err != nil {
+		        fmt.Println("Error:", err)
+		        return
+	        }
+            defer resp.Body.Close()
 
+            //for _, z := range zipr.File {
 
-            fmt.Printf("type: %T\n", file)
-            fmt.Printf("eee")
-            zipr, _ := zip.NewReader(file, header.Size)
-            for _, z := range zipr.File {
+            //    fmt.Printf("type: %T\n", z.FileHeader)
+            //    fmt.Printf("type: %s\n", z.FileHeader.Name)
+            //}
+            //          fmt.Printf("FIle :\n%s", header.Filename)
 
-                fmt.Printf("type: %T\n", z.FileHeader)
-                fmt.Printf("type: %s\n", z.FileHeader.Name)
-            }
-                      fmt.Printf("FIle :\n%s", header.Filename)
-
-            fmt.Fprintf(w, "Posted Solution")
+            //fmt.Fprintf(w, "Posted Solution")
             json.NewEncoder(w).Encode(map[string]string{"status":"ok", "raiting": "600"})
         default:
             w.WriteHeader(404)
