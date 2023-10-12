@@ -1,3 +1,4 @@
-server/
+server
 howto_submit/
 *.tar
+*.zip
