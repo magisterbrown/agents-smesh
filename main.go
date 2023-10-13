@@ -1,7 +1,6 @@
 package main
 
 import (
-    "github.com/dustinkirkland/golang-petname"
     "fmt"
     "log"
     "net/http"
@@ -12,9 +11,15 @@ import (
     _ "github.com/mattn/go-sqlite3" 
     "github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
+    "github.com/dustinkirkland/golang-petname"
     "context"
+    "strings"
 )
 
+type Agent struct {
+    Image string `json:"stream"`
+    Raiting float32
+}
 func getLeaderboard(w http.ResponseWriter, req *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     switch req.Method {
@@ -38,7 +43,7 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             // Create docker image
 	        cli, err := client.NewClientWithOpts(client.FromEnv)
             options := types.ImageBuildOptions{
-                Tags: []string{petname.Generate(2, "-")},
+                Tags: []string{petname.Generate(2, "-")+":player"},
                 SuppressOutput: true,                           
                 Dockerfile: "submission/Dockerfile",           
             }                                                 
@@ -49,6 +54,11 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
 		        return
 	        }
             defer resp.Body.Close()
+            var submission Agent
+            json.NewDecoder(resp.Body).Decode(&submission)
+            submission.Image = strings.TrimPrefix(submission.Image, "sha256:")
+            //body, _ := ioutil.ReadAll(resp.Body)
+            fmt.Println(string(submission.Image))
 
             //for _, z := range zipr.File {
 
