@@ -7,7 +7,9 @@ CREATE TABLE players (
 CREATE TABLE submissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INT NOT NULL,
+    container_id VARCHAR(128) NOT NULL,
     raiting FLOAT NOT NULL,
+    broken INTEGER DEFAULT 0,
     FOREIGN KEY(user_id) REFERENCES players(id)
 );
 

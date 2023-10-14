@@ -11,7 +11,11 @@ type Agent struct {
     Raiting float32
 }
 
-func SaveAgent(data Agent) {
+func SaveAgent(data Agent, owner Player) (int64, error) {
+    data.Raiting = 700.0
+    res, err := DB.Exec("INSERT INTO submissions (user_id, container_id, raiting) VALUES (?, ?, ?)", owner.Id, data.Image, data.Raiting);
+    id, _ := res.LastInsertId();
+    return id, err
 }
 
 type Player struct {
@@ -28,7 +32,7 @@ func GetPlayer(token string) (Player, error) {
 }
 
 func GetLeaderboard() []Player {
-    rows, _:= DB.Query("SELECT * from players")
+    rows, _:= DB.Query("SELECT * FROM players")
     defer rows.Close()
     var res []Player
     for rows.Next() {

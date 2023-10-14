@@ -28,7 +28,7 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             req.ParseMultipartForm(11 << 20) 
 
             //Authentication
-            _ , err := models.GetPlayer(req.Header.Get("Authorization"));
+            player, err := models.GetPlayer(req.Header.Get("Authorization"));
             if err != nil {
             	http.Error(w, "Authorization failed", http.StatusUnauthorized)
                 return 
@@ -37,7 +37,6 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             //Processing form
             file, _, err:= req.FormFile("submission")
             if err != nil {
-                fmt.Printf(err.Error())
             	http.Error(w, "Error retrieving file from form", http.StatusBadRequest)
             	return
             }
@@ -50,23 +49,23 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
                 SuppressOutput: true,                           
                 Dockerfile: "submission/Dockerfile",           
             }                                                 
-            var _ = options
             resp, err := cli.ImageBuild(context.Background(), file, options)
             if err != nil {
 		        fmt.Println("Error:", err)
 		        return
 	        }
             defer resp.Body.Close()
+
             var submission models.Agent
             json.NewDecoder(resp.Body).Decode(&submission)
             submission.Image = strings.TrimPrefix(submission.Image, "sha256:")
-            //body, _ := ioutil.ReadAll(resp.Body)
-            finished, _ := compete.Match(&submission, &submission);
-            if(finished){
-
+            _, err = compete.Match(&submission, &submission);
+            if(err != nil){
+            	http.Error(w, "Agent does not play by the rules", http.StatusBadRequest)
+            	return
             }
-            fmt.Println(string(submission.Image))
-
+            subid, _ := models.SaveAgent(submission, player)
+            fmt.Println(subid)
             //for _, z := range zipr.File {
 
             //    fmt.Printf("type: %T\n", z.FileHeader)
