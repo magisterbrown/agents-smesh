@@ -22,3 +22,6 @@ INSERT INTO players (user_name, password) VALUES
     ("bb", "130.0"),
     ("bc", "130.0");
 
+INSERT INTO sessions (user_id, token) VALUES
+    (1, "tiktok");
+

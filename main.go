@@ -7,6 +7,7 @@ import (
     "database/sql"
     "encoding/json"
     "ranking/models"
+    "ranking/src"
     _ "archive/zip"
     _ "github.com/mattn/go-sqlite3" 
     "github.com/docker/docker/api/types"
@@ -16,22 +17,24 @@ import (
     "strings"
 )
 
-type Agent struct {
-    Image string `json:"stream"`
-    Raiting float32
-}
 func getLeaderboard(w http.ResponseWriter, req *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     switch req.Method {
         case "GET", "HEAD":
             res := models.GetLeaderboard()
             fmt.Fprintf(w, req.Method)
-            //res := models.Player{Id: 0,
-            //Name: "name",
-            //Raiting: 12.3}
             json.NewEncoder(w).Encode(res)
         case "POST":
             req.ParseMultipartForm(11 << 20) 
+
+            //Authentication
+            _ , err := models.GetPlayer(req.Header.Get("Authorization"));
+            if err != nil {
+            	http.Error(w, "Authorization failed", http.StatusUnauthorized)
+                return 
+            }
+
+            //Processing form
             file, _, err:= req.FormFile("submission")
             if err != nil {
                 fmt.Printf(err.Error())
@@ -54,10 +57,14 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
 		        return
 	        }
             defer resp.Body.Close()
-            var submission Agent
+            var submission models.Agent
             json.NewDecoder(resp.Body).Decode(&submission)
             submission.Image = strings.TrimPrefix(submission.Image, "sha256:")
             //body, _ := ioutil.ReadAll(resp.Body)
+            finished, _ := compete.Match(&submission, &submission);
+            if(finished){
+
+            }
             fmt.Println(string(submission.Image))
 
             //for _, z := range zipr.File {
