@@ -66,14 +66,8 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             }
             subid, _ := models.SaveAgent(submission, player)
             fmt.Println(subid)
-            //for _, z := range zipr.File {
+            // TODO: Schedule games
 
-            //    fmt.Printf("type: %T\n", z.FileHeader)
-            //    fmt.Printf("type: %s\n", z.FileHeader.Name)
-            //}
-            //          fmt.Printf("FIle :\n%s", header.Filename)
-
-            //fmt.Fprintf(w, "Posted Solution")
             json.NewEncoder(w).Encode(map[string]string{"status":"ok", "raiting": "600"})
         default:
             w.WriteHeader(404)
