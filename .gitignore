@@ -1,4 +1,6 @@
 server
 howto_submit/
+games/env
 *.tar
 *.zip
+*.ipynb
