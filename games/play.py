@@ -20,3 +20,4 @@ for agent in env.agent_iter():
         acc_rewards[agent]+=reward
 env.close()
 print(json.dumps(acc_rewards))
+print("aa")
