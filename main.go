@@ -8,10 +8,10 @@ import (
     "encoding/json"
     "ranking/models"
     "ranking/src"
-    _ "archive/zip"
+//    _ "archive/zip"
     _ "github.com/mattn/go-sqlite3" 
     "github.com/docker/docker/api/types"
-	"github.com/docker/docker/client"
+    "github.com/docker/docker/client"
     "github.com/dustinkirkland/golang-petname"
     "context"
     "strings"
@@ -80,6 +80,15 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
+
+    err = compete.InitGame()
+
+    if err != nil {
+	    fmt.Println("Error:", err)
+	    return
+	}
+    fmt.Println("initedddd")
+
 
     http.HandleFunc("/leaderboard", getLeaderboard)
     http.ListenAndServe(":8090", nil)
