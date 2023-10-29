@@ -1,4 +1,4 @@
 package config
 
 var GameTag string = "game:latest"
-var GameFolder string = "games"
+var GameFolder string = "games/"

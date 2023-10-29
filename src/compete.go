@@ -1,6 +1,7 @@
 package compete
 
 import (
+    "ranking/config"
     "ranking/models"
     "os/exec"
     "fmt"
@@ -12,30 +13,25 @@ import (
 )
 
 func InitGame() error {
-    file, err := archive.TarWithOptions("games/", &archive.TarOptions{IncludeFiles: []string{"Dockerfile", "test.py","play.py", "requirements.txt"}})
+    file, err := archive.TarWithOptions(config.GameFolder, &archive.TarOptions{IncludeFiles: []string{"Dockerfile", "test.py","play.py", "requirements.txt"}})
     if err != nil {
 	    return err
 	}
-    var tag = "game:latest"
-    
-
     cli, err := client.NewClientWithOpts(client.FromEnv)
     if err != nil {
 	    return err
 	}
 
     options := types.ImageBuildOptions{
-        Tags: []string{tag},
+        Tags: []string{config.GameTag},
         SuppressOutput: true,                           
         Dockerfile: "Dockerfile",           
     }
-    _,_,_ = options, file,cli
     resp, err := cli.ImageBuild(context.Background(), file, options)
     if b, err := io.ReadAll(resp.Body); err == nil {
             fmt.Println(string(b))
         }
-    _ = resp
-    //defer resp.Body.Close()
+    defer resp.Body.Close()
 
     return err
 }

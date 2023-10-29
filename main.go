@@ -87,7 +87,6 @@ func main() {
 	    fmt.Println("Error:", err)
 	    return
 	}
-    fmt.Println("initedddd")
 
 
     http.HandleFunc("/leaderboard", getLeaderboard)
