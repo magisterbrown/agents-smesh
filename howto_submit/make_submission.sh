@@ -1,1 +1,1 @@
-zip -r submission.zip submission/
+tar -cvf submission.tar submission/

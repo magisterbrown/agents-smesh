@@ -26,7 +26,7 @@ func main() {
 	}
     //Starter 
     conf := container.Config{Image: tag, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true}
-    container, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "coolgame")
+    container, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
     hijack, err := cli.ContainerAttach(context.Background(), container.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
     cli.ContainerStart(context.Background(), container.ID, types.ContainerStartOptions{})
     if err != nil {
@@ -41,13 +41,20 @@ func main() {
     movesLoop:
     for i:=0; i<6; i++ {
         sz, err = hijack.Conn.Read(buf)
-        json.Unmarshal(buf[:sz], &message)
+        err = json.Unmarshal(buf[:sz], &message)
+        if err != nil{
+            fmt.Println("Game died") 
+            return 
+        }
         intype, _ := message["type"].(string)
+        fmt.Println(intype)
         switch intype {
             case "move": {
                 fmt.Printf(intype)
-                hijack.Conn.Write([]byte("1\n"))
-                hijack.Conn.Read(buf)
+                //hijack.Conn.Write([]byte("1\n"))
+                hijack.Conn.Write(append([]byte(`{"type":"decision", "choice":1}`), []byte("\n")...))
+
+                //hijack.Conn.Read(buf)
                 for key, value := range message{
                     fmt.Printf("%s: %v\n", key, value)
                 }
@@ -58,8 +65,8 @@ func main() {
                     break movesLoop
                 }
             default: {
-                    fmt.Printf("Errror out")
-                    break movesLoop
+                    //fmt.Printf("Errror out")
+                    //break movesLoop
             }
         }
     }

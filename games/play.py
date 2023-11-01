@@ -2,7 +2,7 @@ from pettingzoo.classic import rps_v2
 import json
 import time
 
-env = rps_v2.env(max_cycles=2)
+env = rps_v2.env(max_cycles=1)
 env.reset(seed=42)
 acc_rewards = env.rewards.copy()
 
@@ -14,7 +14,8 @@ for agent in env.agent_iter():
     else:
         # this is where you would insert your policy
         action = input(json.dumps({"type": "move", "agent": agent, "observation": observation.tolist()}))
-        action = int(action)
+        #action = int(action)
+        action = json.loads(action)["choice"]
 
     env.step(action)
     time.sleep(3)

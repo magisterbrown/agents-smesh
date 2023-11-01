@@ -1,3 +1,3 @@
-FROM ubuntu 
-RUN touch ff.txt
-
+FROM python:latest
+COPY submission/agent.py .
+ENTRYPOINT ["python3", "agent.py"]

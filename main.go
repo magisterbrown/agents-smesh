@@ -50,6 +50,9 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
                 Dockerfile: "submission/Dockerfile",           
             }                                                 
             resp, err := cli.ImageBuild(context.Background(), file, options)
+
+
+            
             if err != nil {
 		        fmt.Println("Error:", err)
 		        return
@@ -58,8 +61,8 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
 
             var submission models.Agent
             json.NewDecoder(resp.Body).Decode(&submission)
-            submission.Image = strings.TrimPrefix(submission.Image, "sha256:")
-            _, err = compete.Match(&submission, &submission);
+            submission.Image = strings.TrimSuffix(strings.TrimPrefix(submission.Image, "sha256:"), "\n")
+            err = compete.Match(&submission, &submission);
             if(err != nil){
             	http.Error(w, "Agent does not play by the rules", http.StatusBadRequest)
             	return

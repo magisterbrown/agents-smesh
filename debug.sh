@@ -1,2 +1,3 @@
 make
-dlv debug ./server
+echo "MAde"
+./server
