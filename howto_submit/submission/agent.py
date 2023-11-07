@@ -2,7 +2,7 @@ import sys
 import json
 
 def agent(state: dict) -> dict:
-    return {"other": 5}
+    return {"type":"decision", "choice": 2}
 
 if __name__=='__main__':
     res = agent(json.loads(sys.argv[1]))

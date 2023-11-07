@@ -1,6 +1,7 @@
 from pettingzoo.classic import rps_v2
 import json
 import time
+import getpass
 
 env = rps_v2.env(max_cycles=1)
 env.reset(seed=42)
@@ -13,12 +14,10 @@ for agent in env.agent_iter():
         action = None
     else:
         # this is where you would insert your policy
-        action = input(json.dumps({"type": "move", "agent": agent, "observation": observation.tolist()}))
-        #action = int(action)
-        action = json.loads(action)["choice"]
+        decision = getpass.getpass(json.dumps({"type": "move", "agent": agent, "observation": observation.tolist()}))
+        action = json.loads(decision)["choice"]
 
     env.step(action)
-    time.sleep(3)
     for agent, reward in env.rewards.items():
         acc_rewards[agent]+=reward
 env.close()

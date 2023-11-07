@@ -10,8 +10,7 @@ import (
     "github.com/docker/docker/api/types/container"
     "github.com/docker/docker/api/types/strslice"
     "context"
-    _ "encoding/json"
-    "io/ioutil"
+    "encoding/json"
 )
 
 func InitGame() error {
@@ -35,9 +34,9 @@ func InitGame() error {
     return err
 }
 
-func makeStep(player *models.Agent, world string) (string, error) {
+func makeStep(player *models.Agent, world string) (types.HijackedResponse, error) {
     cli, err := client.NewClientWithOpts(client.FromEnv)
-    errmsg := ""
+    errmsg := types.HijackedResponse{}
     if err != nil {
 	    return errmsg, err
 	}
@@ -54,12 +53,11 @@ func makeStep(player *models.Agent, world string) (string, error) {
     if err != nil {
 	    return errmsg, err
 	}
-    data, err := ioutil.ReadAll(hijack.Reader)
     if err != nil {
 	    return errmsg, err
 	}
 
-    return string(data), nil
+    return hijack, nil
 }
 
 
@@ -67,60 +65,74 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
     
     cli, err := client.NewClientWithOpts(client.FromEnv)
     _ = cli
-    output, err := makeStep(player1, `{"asus": 3}`)
-    fmt.Println(output) 
     if err != nil {
         fmt.Println(err)
     }
 
+    agents := map[string]*models.Agent{
+        "player_0": player1,
+        "player_1": player2,
+    }
+    _ = agents
 
-    ////Start game container
-    //conf := container.Config{Image: config.GameTag, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true}
-    //gamecont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
-    //if err != nil {
-    //    panic(err)
-    //}
-    //hijack, err := cli.ContainerAttach(context.Background(), gamecont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
-    //_ = hijack
-    //if err != nil {
-    //    panic(err)
-    //}
-    //err = cli.ContainerStart(context.Background(), gamecont.ID, types.ContainerStartOptions{})
-    //if err != nil {
-    //    panic(err)
-    //}
 
-    ////Play game
-    //fmt.Println(player1.Image)
-    //buf := make([]byte, 1024)
-    //var message map[string]interface{}
-    //var sz int
-    //gameLoop:
-    //for {
-    //    sz, err = hijack.Conn.Read(buf)
-    //    err = json.Unmarshal(buf[:sz], &message)
-    //    if err != nil{
-    //        return err
-    //    }
-    //    intype, _ := message["type"].(string)
-    //    switch intype {
-    //        case "move":{
-    //            hijack.Conn.Write(append([]byte(`{"type":"decision", "choice":1}`), []byte("\n")...))
-    //        }
-    //        case "result":{
-    //            break gameLoop
-    //        }
-    //        default:
-    //            //Do nothing, but json is expected
-    //    }
-    //}
+    //Start game container
+    conf := container.Config{Image: config.GameTag, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true}
+    gamecont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
+    if err != nil {
+        panic(err)
+    }
+    hijack, err := cli.ContainerAttach(context.Background(), gamecont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
+    _ = hijack
+    if err != nil {
+        panic(err)
+    }
+    err = cli.ContainerStart(context.Background(), gamecont.ID, types.ContainerStartOptions{})
+    if err != nil {
+        panic(err)
+    }
 
-    ////Cleanup game
-    //err = cli.ContainerRemove(context.Background(), gamecont.ID, types.ContainerRemoveOptions{Force: true})
-    //if err != nil {
-    //    panic(err)
-    //}
-    //fmt.Println("Played")
+    //Play game
+    fmt.Println(player1.Image)
+    buf := make([]byte, 1024)
+    var message map[string]interface{}
+    var sz int
+    gameLoop:
+    for {
+        sz, err = hijack.Conn.Read(buf)
+        err = json.Unmarshal(buf[:sz], &message)
+        if err != nil{
+            return err
+        }
+        intype, _ := message["type"].(string)
+        switch intype {
+            case "move":{
+                agent_idx, _ := message["agent"].(string)
+                output, err := makeStep(agents[agent_idx], string(buf[:sz]))
+                if err != nil{
+                    return err
+                }
+                defer output.Close()
+                line, _ , err := output.Reader.ReadLine()
+                if err != nil{
+                    return err
+                }
+                hijack.Conn.Write(append(line,[]byte("\n")...))
+            }
+            case "result":{
+                break gameLoop
+            }
+            default:
+                //Do nothing, but json is expected
+        }
+    }
+
+    //Cleanup game
+    err = cli.ContainerRemove(context.Background(), gamecont.ID, types.ContainerRemoveOptions{Force: true})
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Played")
     return err
 
 
