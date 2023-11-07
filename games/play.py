@@ -14,7 +14,8 @@ for agent in env.agent_iter():
         action = None
     else:
         # this is where you would insert your policy
-        decision = getpass.getpass(json.dumps({"type": "move", "agent": agent, "observation": observation.tolist()}))
+        print(json.dumps({"type": "move", "agent": agent, "observation": observation.tolist()}))
+        decision = getpass.getpass(stream=open('/dev/null', 'w'))
         action = json.loads(decision)["choice"]
 
     env.step(action)

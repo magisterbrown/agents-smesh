@@ -34,30 +34,30 @@ func InitGame() error {
     return err
 }
 
-func makeStep(player *models.Agent, world string) (types.HijackedResponse, error) {
+func makeStep(player *models.Agent, world string) (types.HijackedResponse, string, error) {
     cli, err := client.NewClientWithOpts(client.FromEnv)
     errmsg := types.HijackedResponse{}
     if err != nil {
-	    return errmsg, err
+	    return errmsg, "", err
 	}
     conf := container.Config{Image: player.Image, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true, Cmd:  strslice.StrSlice{world}}
     playercont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
     if err != nil {
-	    return errmsg, err
+	    return errmsg, "", err
 	}
     hijack, err := cli.ContainerAttach(context.Background(), playercont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
     if err != nil {
-	    return errmsg, err
+	    return errmsg, "", err
 	}
     err = cli.ContainerStart(context.Background(), playercont.ID, types.ContainerStartOptions{})
     if err != nil {
-	    return errmsg, err
+	    return errmsg, "", err
 	}
     if err != nil {
-	    return errmsg, err
+	    return errmsg, "", err
 	}
 
-    return hijack, nil
+    return hijack, playercont.ID, nil
 }
 
 
@@ -94,13 +94,11 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
 
     //Play game
     fmt.Println(player1.Image)
-    buf := make([]byte, 1024)
     var message map[string]interface{}
-    var sz int
     gameLoop:
     for {
-        sz, err = hijack.Conn.Read(buf)
-        err = json.Unmarshal(buf[:sz], &message)
+        buf, _, err := hijack.Reader.ReadLine()
+        err = json.Unmarshal(buf,&message)
         if err != nil{
             return err
         }
@@ -108,12 +106,13 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
         switch intype {
             case "move":{
                 agent_idx, _ := message["agent"].(string)
-                output, err := makeStep(agents[agent_idx], string(buf[:sz]))
+                output, containerID, err := makeStep(agents[agent_idx], string(buf))
                 if err != nil{
                     return err
                 }
-                defer output.Close()
                 line, _ , err := output.Reader.ReadLine()
+                output.Close()
+                err = cli.ContainerRemove(context.Background(), containerID, types.ContainerRemoveOptions{Force: true})
                 if err != nil{
                     return err
                 }
