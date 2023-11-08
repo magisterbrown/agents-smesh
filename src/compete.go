@@ -34,13 +34,13 @@ func InitGame() error {
     return err
 }
 
-func makeStep(player *models.Agent, world string) (types.HijackedResponse, string, error) {
+func startContainer(image string, command string) (types.HijackedResponse, string, error) {
     cli, err := client.NewClientWithOpts(client.FromEnv)
     errmsg := types.HijackedResponse{}
     if err != nil {
 	    return errmsg, "", err
 	}
-    conf := container.Config{Image: player.Image, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true, Cmd:  strslice.StrSlice{world}}
+    conf := container.Config{Image: image, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true, Cmd:  strslice.StrSlice{command}}
     playercont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
     if err != nil {
 	    return errmsg, "", err
@@ -106,7 +106,7 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
         switch intype {
             case "move":{
                 agent_idx, _ := message["agent"].(string)
-                output, containerID, err := makeStep(agents[agent_idx], string(buf))
+                output, containerID, err := startContainer(agents[agent_idx].Image, string(buf))
                 if err != nil{
                     return err
                 }
