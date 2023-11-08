@@ -34,14 +34,12 @@ func InitGame() error {
     return err
 }
 
-func startContainer(image string, command string) (types.HijackedResponse, string, error) {
-    cli, err := client.NewClientWithOpts(client.FromEnv)
-    if err != nil {
-        panic(err)
-    }
+func startContainer(cli *client.Client, image string, command string) (types.HijackedResponse, string, error) {
+
     conf := container.Config{Image: image, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true, Cmd:  strslice.StrSlice{command}}
     hijack := types.HijackedResponse{}
     playercontID := ""
+    err := *new(error)
 
     for range []int{1} {
         playercont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
@@ -53,12 +51,13 @@ func startContainer(image string, command string) (types.HijackedResponse, strin
         if err != nil {
             break
         }
-        if err = cli.ContainerStart(context.Background(), playercont.ID, types.ContainerStartOptions{}); err != nil {
+        err = cli.ContainerStart(context.Background(), playercont.ID, types.ContainerStartOptions{})
+        if err != nil {
             break
         }
     }
 
-    return hijack, playercontID, nil
+    return hijack, playercontID, err
 }
 
 
@@ -69,7 +68,7 @@ func Match(player1 *models.Agent, player2 *models.Agent) (*models.Agent, error) 
     }
     
     //Start game container
-    hijack, gamecontID, err := startContainer(config.GameTag, "")
+    hijack, gamecontID, err := startContainer(cli, config.GameTag, "")
     if err != nil {
         panic(err)
     }
@@ -106,7 +105,7 @@ func Match(player1 *models.Agent, player2 *models.Agent) (*models.Agent, error) 
                     err = fmt.Errorf("No agent id")
                     break gameLoop
                 }
-                output, containerID, err := startContainer(agents[agent_idx].Image, string(buf))
+                output, containerID, err := startContainer(cli, agents[agent_idx].Image, string(buf))
                 if err != nil{
                     break gameLoop
                 }
@@ -126,11 +125,11 @@ func Match(player1 *models.Agent, player2 *models.Agent) (*models.Agent, error) 
                 break gameLoop
             }
             default:
-                //Do nothing, but json is expected
                 err = fmt.Errorf("Unexpected json")
                 break gameLoop
         }
     }
+
     //Cleanup game
     errclean := cli.ContainerRemove(context.Background(), gamecontID, types.ContainerRemoveOptions{Force: true})
     if errclean != nil {
