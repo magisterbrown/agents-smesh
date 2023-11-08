@@ -24,5 +24,5 @@ for agent in env.agent_iter():
 env.close()
 winner = max(acc_rewards, key=acc_rewards.get)
 if all(value == 0 for value in acc_rewards.values()):
-    winner = None
+    winner = ""
 print(json.dumps({"type": "result", "winner": winner}))

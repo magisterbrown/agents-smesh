@@ -62,7 +62,7 @@ func startContainer(image string, command string) (types.HijackedResponse, strin
 }
 
 
-func Match(player1 *models.Agent, player2 *models.Agent) error {
+func Match(player1 *models.Agent, player2 *models.Agent) (*models.Agent, error) {
     cli, err := client.NewClientWithOpts(client.FromEnv)
     if err != nil {
         panic(err)
@@ -73,6 +73,7 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
     if err != nil {
         panic(err)
     }
+    defer hijack.Close()
 
     agents := map[string]*models.Agent{
             "player_0": player1,
@@ -80,43 +81,70 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
     }
 
     //Play game
-    fmt.Println(player1.Image)
     var message map[string]interface{}
+    agent_idx := ""
+    winner := ""
     gameLoop:
     for {
-        buf, _, err := hijack.Reader.ReadLine()
+        buf, isPrefix, err := hijack.Reader.ReadLine()
+        if err != nil || isPrefix {
+            err = fmt.Errorf("Failed to get full line from user %w", err)
+        }
         err = json.Unmarshal(buf,&message)
         if err != nil{
-            return err
+            break gameLoop
         }
-        intype, _ := message["type"].(string)
+        intype, ok := message["type"].(string)
+        if !ok {
+            err = fmt.Errorf("Not type from game")
+            break gameLoop
+        }
         switch intype {
             case "move":{
-                agent_idx, _ := message["agent"].(string)
+                agent_idx, ok = message["agent"].(string)
+                if !ok {
+                    err = fmt.Errorf("No agent id")
+                    break gameLoop
+                }
                 output, containerID, err := startContainer(agents[agent_idx].Image, string(buf))
                 if err != nil{
-                    return err
+                    break gameLoop
                 }
-                line, _ , err := output.Reader.ReadLine()
+                line, isPrefix, err := output.Reader.ReadLine()
+                if err != nil || isPrefix {
+                    err = fmt.Errorf("Failed to get full line from user %w", err)
+                }
                 output.Close()
                 err = cli.ContainerRemove(context.Background(), containerID, types.ContainerRemoveOptions{Force: true})
                 if err != nil{
-                    return err
+                    break gameLoop
                 }
                 hijack.Conn.Write(append(line,[]byte("\n")...))
             }
             case "result":{
+                winner, _ = message["winner"].(string)
                 break gameLoop
             }
             default:
                 //Do nothing, but json is expected
+                err = fmt.Errorf("Unexpected json")
+                break gameLoop
         }
     }
-
     //Cleanup game
-    err = cli.ContainerRemove(context.Background(), gamecontID, types.ContainerRemoveOptions{Force: true})
-    if err != nil {
-        panic(err)
+    errclean := cli.ContainerRemove(context.Background(), gamecontID, types.ContainerRemoveOptions{Force: true})
+    if errclean != nil {
+        panic(errclean)
     }
-    return err
+    if agent_idx == "" {
+        panic(fmt.Errorf("Game did not set the player"))
+    }
+    if err != nil {
+        return agents[agent_idx], err
+    }
+    if winner == "" {
+        return nil, nil
+    }
+    
+    return agents[winner], nil
     }

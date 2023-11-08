@@ -62,7 +62,7 @@ func getLeaderboard(w http.ResponseWriter, req *http.Request) {
             var submission models.Agent
             json.NewDecoder(resp.Body).Decode(&submission)
             submission.Image = strings.TrimSuffix(strings.TrimPrefix(submission.Image, "sha256:"), "\n")
-            err = compete.Match(&submission, &submission);
+            _, err = compete.Match(&submission, &submission);
             if(err != nil){
             	http.Error(w, "Agent does not play by the rules", http.StatusBadRequest)
             	return
