@@ -36,60 +36,47 @@ func InitGame() error {
 
 func startContainer(image string, command string) (types.HijackedResponse, string, error) {
     cli, err := client.NewClientWithOpts(client.FromEnv)
-    errmsg := types.HijackedResponse{}
     if err != nil {
-	    return errmsg, "", err
-	}
+        panic(err)
+    }
     conf := container.Config{Image: image, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true, Cmd:  strslice.StrSlice{command}}
-    playercont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
-    if err != nil {
-	    return errmsg, "", err
-	}
-    hijack, err := cli.ContainerAttach(context.Background(), playercont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
-    if err != nil {
-	    return errmsg, "", err
-	}
-    err = cli.ContainerStart(context.Background(), playercont.ID, types.ContainerStartOptions{})
-    if err != nil {
-	    return errmsg, "", err
-	}
-    if err != nil {
-	    return errmsg, "", err
-	}
+    hijack := types.HijackedResponse{}
+    playercontID := ""
 
-    return hijack, playercont.ID, nil
+    for range []int{1} {
+        playercont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
+        if err != nil {
+            break
+        }
+        playercontID = playercont.ID
+        hijack, err = cli.ContainerAttach(context.Background(), playercont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
+        if err != nil {
+            break
+        }
+        if err = cli.ContainerStart(context.Background(), playercont.ID, types.ContainerStartOptions{}); err != nil {
+            break
+        }
+    }
+
+    return hijack, playercontID, nil
 }
 
 
 func Match(player1 *models.Agent, player2 *models.Agent) error {
-    
     cli, err := client.NewClientWithOpts(client.FromEnv)
-    _ = cli
     if err != nil {
-        fmt.Println(err)
+        panic(err)
+    }
+    
+    //Start game container
+    hijack, gamecontID, err := startContainer(config.GameTag, "")
+    if err != nil {
+        panic(err)
     }
 
     agents := map[string]*models.Agent{
-        "player_0": player1,
-        "player_1": player2,
-    }
-    _ = agents
-
-
-    //Start game container
-    conf := container.Config{Image: config.GameTag, AttachStdin: true, AttachStdout: true, AttachStderr: true, Tty: true, OpenStdin: true, StdinOnce: true}
-    gamecont, err := cli.ContainerCreate(context.Background(), &conf, nil, nil, nil, "")
-    if err != nil {
-        panic(err)
-    }
-    hijack, err := cli.ContainerAttach(context.Background(), gamecont.ID, types.ContainerAttachOptions{Stream:true, Stdout:true, Stdin:true, Stderr:true})
-    _ = hijack
-    if err != nil {
-        panic(err)
-    }
-    err = cli.ContainerStart(context.Background(), gamecont.ID, types.ContainerStartOptions{})
-    if err != nil {
-        panic(err)
+            "player_0": player1,
+            "player_1": player2,
     }
 
     //Play game
@@ -127,13 +114,9 @@ func Match(player1 *models.Agent, player2 *models.Agent) error {
     }
 
     //Cleanup game
-    err = cli.ContainerRemove(context.Background(), gamecont.ID, types.ContainerRemoveOptions{Force: true})
+    err = cli.ContainerRemove(context.Background(), gamecontID, types.ContainerRemoveOptions{Force: true})
     if err != nil {
         panic(err)
     }
-    fmt.Println("Played")
     return err
-
-
     }
-
